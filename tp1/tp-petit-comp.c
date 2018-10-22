@@ -11,7 +11,7 @@
 /* Analyseur lexical. */
 
 enum { DO_SYM, ELSE_SYM, IF_SYM, WHILE_SYM, LBRA, RBRA, LPAR,
-       RPAR, PLUS, MINUS, LESS, SEMI, EQUAL, INT, ID, EOI,
+       PRINT_SYM, RPAR, PLUS, MINUS, LESS, SEMI, EQUAL, INT, ID, EOI,
        LESS_EQUAL, GREAT, GREAT_EQUAL, DOUBLE_EQUAL, NOT,
        MULT, MODULO};
 
@@ -26,21 +26,27 @@ void syntax_error() { fprintf(stderr, "syntax error\n"); exit(1); }
 
 void next_ch() { ch = getchar(); }
 
+// DEBUG PRINTS
+void printch() { printf("%c\n", ch);}
+void print_int_val() { printf("%d\n", int_val);}
+
 void next_sym()
 {
   while (ch == ' ' || ch == '\n') next_ch();
+  printch();
   switch (ch)
-    { case '{': sym = LBRA;  next_ch(); break;
-      case '}': sym = RBRA;  next_ch(); break;
-      case '(': sym = LPAR;  next_ch(); break;
-      case ')': sym = RPAR;  next_ch(); break;
-      case '+': sym = PLUS;  next_ch(); break;
-      case '-': sym = MINUS; next_ch(); break;
-      case '<': sym = LESS;  next_ch(); break;
-      case ';': sym = SEMI;  next_ch(); break;
-      case '=': sym = EQUAL; next_ch(); break;
-      case EOF: sym = EOI;   next_ch(); break;
+    { case '{': sym = LBRA;  next_ch(); printch();break;
+      case '}': sym = RBRA;  next_ch(); printch();break;
+      case '(': sym = LPAR;  next_ch(); printch();break;
+      case ')': sym = RPAR;  next_ch(); printch();break;
+      case '+': sym = PLUS;  next_ch(); printch();break;
+      case '-': sym = MINUS; next_ch(); printch(); break;
+      case '<': sym = LESS;  next_ch(); printch();break;
+      case ';': sym = SEMI;  next_ch(); printch();break;
+      case '=': sym = EQUAL; next_ch(); printch();break;
+      case EOF: sym = EOI;   next_ch(); printch();break;
       default:
+      // ASSIGNATION DE LA VALEUR DE LA VARIABLE
         if (ch >= '0' && ch <= '9')
           {
             int_val = 0; /* overflow? */
@@ -50,9 +56,11 @@ void next_sym()
                 int_val = int_val*10 + (ch - '0');
                 next_ch();
               }
-      
+            print_int_val();
             sym = INT;
           }
+
+        // ASSIGNATION DU NOM DE LA VARIABLE
         else if (ch >= 'a' && ch <= 'z')
           {
             int i = 0; /* overflow? */
@@ -65,10 +73,12 @@ void next_sym()
       
             id_name[i] = '\0';
             sym = 0;
-      
+
+            // COMPARE AVEC LES MOTS EXCLISIF AU LANGAGE
             while (words[sym]!=NULL && strcmp(words[sym], id_name)!=0)
               sym++;
-      
+            
+            // NE LAISSE PAS AVOIR DES VARIABLE DE PLUS DE UNE LETTRE!
             if (words[sym] == NULL)
               {
                 if (id_name[1] == '\0') sym = ID; else syntax_error();
@@ -395,7 +405,6 @@ int main()
   int i;
 
   c(program());
-
 #ifdef SHOW_CODE
   printf("\n");
 #endif

@@ -402,10 +402,10 @@ void c(node *x)
                    c(x->o1);
                    c(x->o2);
                    gi(ISUB);
-                   gi(IFEQ); g(8);
+                   gi(IFEQ); g(11);
                    c(x->o1);
                    c(x->o2);
-                   gi(SUB);
+                   gi(ISUB);
                    gi(IFLT); g(4);
                    gi(POP);
                    gi(BIPUSH); g(0); break;

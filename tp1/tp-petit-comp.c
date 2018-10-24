@@ -12,8 +12,8 @@
 
 enum { DO_SYM, ELSE_SYM, IF_SYM, WHILE_SYM, LBRA, RBRA, LPAR,
        PRINT_SYM, RPAR, PLUS, MINUS, LESS, SEMI, EQUAL, INT, ID, EOI,
-       LESS_EQUAL, GREAT, GREAT_EQUAL, DOUBLE_EQUAL, NOT,
-       MULT, MODULO};
+       LESS_EQUAL, GREAT, GREAT_EQUAL, DOUBLE_EQUAL, NOT_EQUAL,
+       MULT, DIV, MOD};
 
 char *words[] = { "do", "else", "if", "while", "print", NULL };
 
@@ -27,26 +27,74 @@ void syntax_error() { fprintf(stderr, "syntax error\n"); exit(1); }
 void next_ch() { ch = getchar(); }
 
 // DEBUG PRINTS
-void printch() { printf("%c\n", ch);}
+void print_ch() { printf("%c\n", ch);}
 void print_int_val() { printf("%d\n", int_val);}
 
 void next_sym()
-{
+{ 
   while (ch == ' ' || ch == '\n') next_ch();
-  printch();
   switch (ch)
-    { case '{': sym = LBRA;  next_ch(); printch();break;
-      case '}': sym = RBRA;  next_ch(); printch();break;
-      case '(': sym = LPAR;  next_ch(); printch();break;
-      case ')': sym = RPAR;  next_ch(); printch();break;
-      case '+': sym = PLUS;  next_ch(); printch();break;
-      case '-': sym = MINUS; next_ch(); printch(); break;
-      case '<': sym = LESS;  next_ch(); printch();break;
-      case ';': sym = SEMI;  next_ch(); printch();break;
-      case '=': sym = EQUAL; next_ch(); printch();break;
-      case EOF: sym = EOI;   next_ch(); printch();break;
+    { case '{': sym = LBRA;  next_ch(); break;
+      case '}': sym = RBRA;  next_ch(); break;
+      case '(': sym = LPAR;  next_ch(); break;
+      case ')': sym = RPAR;  next_ch(); break;
+      case '+': sym = PLUS;  next_ch(); break;
+      case '-': sym = MINUS; next_ch(); break;
+      case ';': sym = SEMI;  next_ch(); break;
+      case '*': sym = MULT;  next_ch(); break;
+      case '/': sym = DIV;   next_ch(); break;
+      case '%': sym = MOD;   next_ch(); break;
+      
+      case '<':
+        next_ch();
+        if(ch == '='){
+          sym = LESS_EQUAL;
+          next_ch();
+          break;
+        }
+        else{
+          sym = LESS;
+          break;          
+        }
+
+      case '>':
+        next_ch();
+        if(ch == '='){
+          sym = GREAT_EQUAL;
+          next_ch();
+          break;
+        }
+        else{
+          sym = GREAT;
+          break;          
+        }
+
+      case '=':
+        next_ch();
+        if(ch == '='){
+          sym = DOUBLE_EQUAL;
+          next_ch();
+          break;
+        }
+        else{
+          sym = EQUAL;
+          break;
+        }
+
+      case '!':
+        next_ch();
+        if(ch == '='){
+          sym = NOT_EQUAL;
+          next_ch();
+          break;
+        }
+        else{
+          // TODO CHANGE ERROR LOG!!!
+          syntax_error();          
+        }
+
+      case EOF: sym = EOI;   next_ch(); break;
       default:
-      // ASSIGNATION DE LA VALEUR DE LA VARIABLE
         if (ch >= '0' && ch <= '9')
           {
             int_val = 0; /* overflow? */
@@ -56,11 +104,9 @@ void next_sym()
                 int_val = int_val*10 + (ch - '0');
                 next_ch();
               }
-            print_int_val();
             sym = INT;
           }
 
-        // ASSIGNATION DU NOM DE LA VARIABLE
         else if (ch >= 'a' && ch <= 'z')
           {
             int i = 0; /* overflow? */
@@ -74,11 +120,9 @@ void next_sym()
             id_name[i] = '\0';
             sym = 0;
 
-            // COMPARE AVEC LES MOTS EXCLISIF AU LANGAGE
             while (words[sym]!=NULL && strcmp(words[sym], id_name)!=0)
               sym++;
             
-            // NE LAISSE PAS AVOIR DES VARIABLE DE PLUS DE UNE LETTRE!
             if (words[sym] == NULL)
               {
                 if (id_name[1] == '\0') sym = ID; else syntax_error();
@@ -92,7 +136,9 @@ void next_sym()
 
 /* Analyseur syntaxique. */
 
-enum { VAR, CST, ADD, SUB, LT, ASSIGN,
+/* TODO, ajouter dans le enum les commandes manquantes */
+
+enum { VAR, CST, ADD, SUB, LT, LEQ, ASSIGN,
        IF1, IF2, WHILE, DO, PRINT, EMPTY, SEQ, EXPR, PROG };
 
 struct node
@@ -155,8 +201,10 @@ node *sum() /* <sum> ::= <term>|<sum>"+"<term>|<sum>"-"<term> */
 
 node *test() /* <test> ::= <sum> | <sum> "<" <sum> */
 {
+  /* <sum> */
   node *x = sum();
 
+  /* <sum> "<" <sum> */
   if (sym == LESS)
     {
       node *t = x;
@@ -165,6 +213,36 @@ node *test() /* <test> ::= <sum> | <sum> "<" <sum> */
       x->o1 = t;
       x->o2 = sum();
     }
+
+    /* <sum> "<=" <sum> */
+    else if(sym == LESS_EQUAL){
+      node *t = x;
+      x = new_node(LEQ);
+      next_sym();
+      x->o1 = t;
+      x->o2 = sum();
+    }
+
+    /* <sum> ">" <sum> */
+    else if(sym == GREAT){
+
+    }
+
+    /* <sum> ">=" <sum> */
+    else if(sym == GREAT_EQUAL){
+
+    }
+
+    /* <sum> "==" <sum> */
+    else if(sym == DOUBLE_EQUAL){
+
+    }
+
+    /* <sum> "!=" <sum> */
+    else if(sym == NOT_EQUAL){
+
+    }
+
 
   return x;
 }
@@ -281,6 +359,7 @@ node *program()  /* <program> ::= <stat> */
 /*---------------------------------------------------------------------------*/
 
 /* Generateur de code. */
+/* TODO create new instructions for the LEQ, GTE, NOT, MULT, DIV, MOD*/
 
 enum { ILOAD, ISTORE, BIPUSH, DUP, POP, IADD, ISUB, IPRINT,
        GOTO, IFEQ, IFNE, IFLT, RETURN };
@@ -315,6 +394,18 @@ void c(node *x)
                    c(x->o1);
                    c(x->o2);
                    gi(ISUB);
+                   gi(IFLT); g(4);
+                   gi(POP);
+                   gi(BIPUSH); g(0); break;
+
+      case LEQ   : gi(BIPUSH); g(1);
+                   c(x->o1);
+                   c(x->o2);
+                   gi(ISUB);
+                   gi(IFEQ); g(8);
+                   c(x->o1);
+                   c(x->o2);
+                   gi(SUB);
                    gi(IFLT); g(4);
                    gi(POP);
                    gi(BIPUSH); g(0); break;
@@ -405,6 +496,7 @@ int main()
   int i;
 
   c(program());
+
 #ifdef SHOW_CODE
   printf("\n");
 #endif

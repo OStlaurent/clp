@@ -138,7 +138,7 @@ void next_sym()
 
 /* TODO, ajouter dans le enum les commandes manquantes */
 
-enum { VAR, CST, ADD, SUB, LT, LEQ, ASSIGN,
+enum { VAR, CST, ADD, SUB, LT, LEQ, GT, EQ, NEQ, GEQ, ASSIGN,
        IF1, IF2, WHILE, DO, PRINT, EMPTY, SEQ, EXPR, PROG };
 
 struct node
@@ -225,22 +225,38 @@ node *test() /* <test> ::= <sum> | <sum> "<" <sum> */
 
     /* <sum> ">" <sum> */
     else if(sym == GREAT){
-
+      node *t = x;
+      x = new_node(GT);
+      next_sym();
+      x->o1 = t;
+      x->o2 = sum();
     }
 
     /* <sum> ">=" <sum> */
     else if(sym == GREAT_EQUAL){
-
+      node *t = x;
+      x = new_node(GEQ);
+      next_sym();
+      x->o1 = t;
+      x->o2 = sum();
     }
 
     /* <sum> "==" <sum> */
     else if(sym == DOUBLE_EQUAL){
-
+      node *t = x;
+      x = new_node(EQ);
+      next_sym();
+      x->o1 = t;
+      x->o2 = sum();
     }
 
     /* <sum> "!=" <sum> */
     else if(sym == NOT_EQUAL){
-
+      node *t = x;
+      x = new_node(NEQ);
+      next_sym();
+      x->o1 = t;
+      x->o2 = sum();
     }
 
 
@@ -407,6 +423,42 @@ void c(node *x)
                    c(x->o2);
                    gi(ISUB);
                    gi(IFLT); g(4);
+                   gi(POP);
+                   gi(BIPUSH); g(0); break;
+
+      case GT    : gi(BIPUSH); g(0);
+                   c(x->o1);
+                   c(x->o2);
+                   gi(ISUB);
+                   gi(IFEQ); g(11);
+                   c(x->o1);
+                   c(x->o2);
+                   gi(ISUB);
+                   gi(IFLT); g(4);
+                   gi(POP);
+                   gi(BIPUSH); g(1); break;
+      
+      case GEQ   : gi(BIPUSH); g(0);
+                   c(x->o1);
+                   c(x->o2);
+                   gi(ISUB);
+                   gi(IFLT); g(4);
+                   gi(POP);
+                   gi(BIPUSH); g(1); break;
+
+      case EQ   : gi(BIPUSH); g(1);
+                   c(x->o1);
+                   c(x->o2);
+                   gi(ISUB);
+                   gi(IFEQ); g(4);
+                   gi(POP);
+                   gi(BIPUSH); g(0); break;
+
+      case NEQ   : gi(BIPUSH); g(1);
+                   c(x->o1);
+                   c(x->o2);
+                   gi(ISUB);
+                   gi(IFNE); g(4);
                    gi(POP);
                    gi(BIPUSH); g(0); break;
 

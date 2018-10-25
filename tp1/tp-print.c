@@ -179,6 +179,8 @@ node *term() /* <term> ::= <id> | <int> | <paren_expr> */
 
 node *mult() /* <mult> ::= <term>|<mult>"*"<term>|<mult>"/"<term> 
                 | <mult>%<term> */
+
+// BOUCLE WHILE!!!
 {
   node *x = term();
 
@@ -440,7 +442,7 @@ void c(node *x)
                    gi(IFLT); g(4);
                    gi(POP);
                    gi(BIPUSH); g(0); break;
-
+//JUMP DYNAMIC!!
       case LEQ   : gi(BIPUSH); g(1);
                    c(x->o1);
                    c(x->o2);

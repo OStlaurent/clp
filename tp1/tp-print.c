@@ -14,9 +14,9 @@ enum { DO_SYM, ELSE_SYM, IF_SYM, WHILE_SYM, PRINT_SYM, LBRA, RBRA, LPAR,
        RPAR, PLUS, MINUS, LESS, SEMI, EQUAL,
        MULTI, DIVI, MODULO,
        LESS_EQUAL, GREAT, GREAT_EQUAL, DOUBLE_EQUAL, NOT_EQUAL,
-       INT, ID, EOI };
+       INT, ID, EOI, TAG, BREAK, CONTINUE, GOTO} };
 
-char *words[] = { "do", "else", "if", "while", "print", NULL };
+char *words[] = { "do", "else", "if", "while", "print", "break", "continue", "goto", NULL };
 
 int ch = ' ';
 int sym;
@@ -39,8 +39,9 @@ void next_sym()
       case '*': sym = MULTI; next_ch(); break;
       case '/': sym = DIVI;  next_ch(); break;
       case '%': sym = MODULO;next_ch(); break;
+      case ':': sym = TAG;   tag_name[i] == id_name[i]; next_ch(); break;
       case EOF: sym = EOI;   next_ch(); break;
-      
+
       case '<':
         next_ch();
         if(ch == '='){
@@ -92,32 +93,32 @@ void next_sym()
         if (ch >= '0' && ch <= '9')
           {
             int_val = 0; /* overflow? */
-      
+
             while (ch >= '0' && ch <= '9')
               {
                 int_val = int_val*10 + (ch - '0');
                 next_ch();
               }
-      
+
             sym = INT;
           }
         else if (ch >= 'a' && ch <= 'z')
           {
             int i = 0; /* overflow? */
-      
+
             while ((ch >= 'a' && ch <= 'z') || ch == '_')
               {
                 id_name[i++] = ch;
                 next_ch();
               }
-      
+
             id_name[i] = '\0';
             sym = 0;
-      
-            while (words[sym]!=NULL && strcmp(words[sym], id_name)!=0){              
+
+            while (words[sym]!=NULL && strcmp(words[sym], id_name)!=0){
               sym++;
             }
-      
+
             if (words[sym] == NULL)
               {
                 if (id_name[1] == '\0') sym = ID; else syntax_error();
@@ -177,7 +178,7 @@ node *term() /* <term> ::= <id> | <int> | <paren_expr> */
   return x;
 }
 
-node *mult() /* <mult> ::= <term>|<mult>"*"<term>|<mult>"/"<term> 
+node *mult() /* <mult> ::= <term>|<mult>"*"<term>|<mult>"/"<term>
                 | <mult>%<term> */
 
 // BOUCLE WHILE!!!
@@ -208,7 +209,7 @@ node *mult() /* <mult> ::= <term>|<mult>"*"<term>|<mult>"/"<term>
     x->o2 = term();
   }
 
-  return x;  
+  return x;
 }
 
 node *sum() /* <sum> ::= <mult>|<sum>"+"<mult>|<sum>"-"<mult> */
@@ -239,7 +240,7 @@ node *test() /* <test> ::= <sum> | <sum> "<" <sum> */
       x->o1 = t;
       x->o2 = sum();
     }
-    
+
     /* <sum> "<=" <sum> */
     else if(sym == LESS_EQUAL){
       node *t = x;
@@ -377,6 +378,24 @@ node *statement()
         }
       next_sym();
     }
+
+    else if (SYM == TAG) {
+			x = new_node()
+		}
+
+		else if (SYM == BREAK){
+
+		}
+
+		else if (SYM == CONTINUE){
+
+		}
+
+		else if (SYM == GOTO){
+
+		}
+
+
   else                     /* <expr> ";" */
     {
       x = new_node(EXPR);
@@ -563,7 +582,16 @@ void run()
         case IDIV  : sp[-2] = sp[-2] / sp[-1]; --sp;     break;
         case IMOD  : sp[-2] = sp[-2] % sp[-1]; --sp;     break;
         case IPRINT: printf("%d\n", *--sp);              break;
-        case GOTO  : pc += *pc;                          break;
+        case GOTO  :
+          if((pc > *pc) && (pc > (*pc+127)))
+          {
+            //TODO throw error
+          }
+          else if((pc < *pc) && (pc < (*pc-128)))
+          {
+            //TODO throw error
+          }
+        pc += *pc;	break;
         case IFEQ  : if (*--sp==0) pc += *pc; else pc++; break;
         case IFNE  : if (*--sp!=0) pc += *pc; else pc++; break;
         case IFLT  : if (*--sp< 0) pc += *pc; else pc++; break;

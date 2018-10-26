@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <setjmp.h>
+
+jmp_buf env;
 
 /*---------------------------------------------------------------------------*/
 
@@ -14,7 +17,7 @@ enum { DO_SYM, ELSE_SYM, IF_SYM, WHILE_SYM, PRINT_SYM, LBRA, RBRA, LPAR,
        RPAR, PLUS, MINUS, LESS, SEMI, EQUAL,
        MULTI, DIVI, MODULO,
        LESS_EQUAL, GREAT, GREAT_EQUAL, DOUBLE_EQUAL, NOT_EQUAL,
-       INT, ID, EOI, TAG, BREAK, CONTINUE, GOTO} };
+       INT, ID, EOI, TAG_SYM, BREAK_SYM, CONTINUE_SYM, GOTO_SYM };
 
 char *words[] = { "do", "else", "if", "while", "print", "break", "continue", "goto", NULL };
 
@@ -22,8 +25,8 @@ int ch = ' ';
 int sym;
 int int_val;
 char id_name[100];
+char labels[100];
 
-void syntax_error() { fprintf(stderr, "syntax error\n"); exit(1); }
 void next_ch() { ch = getchar(); }
 void next_sym()
 {
@@ -39,7 +42,7 @@ void next_sym()
       case '*': sym = MULTI; next_ch(); break;
       case '/': sym = DIVI;  next_ch(); break;
       case '%': sym = MODULO;next_ch(); break;
-      case ':': sym = TAG;   tag_name[i] == id_name[i]; next_ch(); break;
+      case ':': sym = TAG_SYM;next_ch(); break;
       case EOF: sym = EOI;   next_ch(); break;
 
       case '<':
@@ -85,8 +88,9 @@ void next_sym()
           break;
         }
         else{
-          // TODO CHANGE ERROR LOG!!!
-          syntax_error();
+          //Unrecognized symbole - Error Code: 2
+          printf("Bad Termination - Unrecognized symbole  \n");
+          longjmp(env, 2);
         }
 
       default:
@@ -121,10 +125,12 @@ void next_sym()
 
             if (words[sym] == NULL)
               {
-                if (id_name[1] == '\0') sym = ID; else syntax_error();
+                if (id_name[1] == '\0') sym = ID; else _error();
               }
           }
-        else syntax_error();
+          //Unrecognized symbole - Error Code: 2
+          printf("Bad Termination - Unrecognized symbole  \n");
+          longjmp(env, 2);
     }
 }
 
@@ -134,7 +140,7 @@ void next_sym()
 
 enum { VAR, CST, ADD, SUB, MULT, DIV, MOD, LT, ASSIGN,
        LEQ, GT, EQ, NEQ, GEQ,
-       IF1, IF2, WHILE, DO, PRINT, EMPTY, SEQ, EXPR, PROG };
+       IF1, IF2, WHILE, DO, PRINT, EMPTY, SEQ, EXPR, PROG, BREAK, CONTINUE };
 
 struct node
   {
@@ -149,7 +155,15 @@ typedef struct node node;
 
 node *new_node(int k)
 {
-  node *x = malloc(sizeof(node));
+  node *x  =  malloc(sizeof(node));
+
+  if(x == NULL)
+  {
+    //Memory error - Error Code: 1
+    printf("Bad Termination - Memory error \n");
+    longjmp(env, 1);
+  }
+
   x->kind = k;
   return x;
 }
@@ -297,13 +311,13 @@ node *expr() /* <expr> ::= <test> | <id> "=" <expr> */
   x = test();
 
   if (sym == EQUAL)
-    {
-      node *t = x;
-      x = new_node(ASSIGN);
-      next_sym();
-      x->o1 = t;
-      x->o2 = expr();
-    }
+  {
+    node *t = x;
+    x = new_node(ASSIGN);
+    next_sym();
+    x->o1 = t;
+    x->o2 = expr();
+  }
 
   return x;
 }
@@ -312,11 +326,25 @@ node *paren_expr() /* <paren_expr> ::= "(" <expr> ")" */
 {
   node *x;
 
-  if (sym == LPAR) next_sym(); else syntax_error();
+
+  if (sym == LPAR) next_sym();
+  else
+  {
+    //Expecting left parenthese - Error Code: 3
+    printf("Bad Termination - Expecting left parenthese  \n");
+    longjmp(env, 3);
+  }
 
   x = expr();
 
-  if (sym == RPAR) next_sym(); else syntax_error();
+
+  if (sym == RPAR) next_sym();
+  else
+  {
+    //Expecting right parenthese - Error Code: 4
+    printf("Bad Termination - Expecting right parenthese  \n");
+    longjmp(env, 4);
+  }
 
   return x;
 }
@@ -349,16 +377,38 @@ node *statement()
       x = new_node(DO);
       next_sym();
       x->o1 = statement();
-      if (sym == WHILE_SYM) next_sym(); else syntax_error();
+
+      if (sym == WHILE_SYM) next_sym();
+      else
+      {
+        //Expecting while keyword - Error Code: 5
+        printf("Bad Termination - Expecting while keyword \n");
+        longjmp(env, 5);
+      }
       x->o2 = paren_expr();
-      if (sym == SEMI) next_sym(); else syntax_error();
+
+      if (sym == SEMI) next_sym();
+      else
+      {
+        //Expecting semicolon - Error Code: 6
+        printf("Bad Termination - Expecting semicolon \n");
+        longjmp(env, 6);
+      }
+
     }
   else if (sym == PRINT_SYM)  /* "print" <paren_expr> ";" */
     {
       x = new_node(PRINT);
       next_sym();
       x->o1 = paren_expr();
-      if (sym == SEMI) next_sym(); else syntax_error();
+
+      if (sym == SEMI) next_sym();
+      else
+      {
+        //Expecting semicolon - Error Code: 6
+        longjmp(env, 6);
+        printf("Bad Termination - Expecting semicolon \n");
+      }
     }
   else if (sym == SEMI)    /* ";" */
     {
@@ -379,28 +429,64 @@ node *statement()
       next_sym();
     }
 
-    else if (SYM == TAG) {
-			x = new_node()
+    else if (sym == ID)
+    {
+      node *x;
+      //Pas sure du next_sym et le if
+      next_sym();
+      if (sym != TAG_SYM)
+      {
+        //ERROR
+      }
+      //
+      x = test();
+      node *t = x;
+      x = new_node(SEQ);
+      next_sym();
+      x->o1 = t;
+      x->o2 = expr();
 		}
 
-		else if (SYM == BREAK){
 
-		}
+    else if(sym == GOTO_SYM)
+    {
+      x = new_node(ID);
+      if(sym == ID)
+      {
+        //setup id
+        x = new_node(SEMI);
+        if(sym == SEMI)
+        {
+          return x;
+        }
+        else
+        {
+          //Expecting semicolon - Error Code: 6
+          printf("Bad Termination - Expecting semicolon \n");
+          longjmp(env, 6);
+        }
+      }
+      else
+      {
+        //Expecting label - Error Code: 9
+        printf("Bad Termination - Expecting label \n");
+        longjmp(env, 9);
+      }
 
-		else if (SYM == CONTINUE){
+    }
 
-		}
-
-		else if (SYM == GOTO){
-
-		}
-
-
-  else                     /* <expr> ";" */
+    else                     /* <expr> ";" */
     {
       x = new_node(EXPR);
       x->o1 = expr();
-      if (sym == SEMI) next_sym(); else syntax_error();
+
+      if (sym == SEMI) next_sym();
+      else
+      {
+        //Expecting semicolon - Error Code: 6
+        printf("Bad Termination - Expecting semicolon \n");
+        longjmp(env, 6);
+      }
     }
 
   return x;
@@ -411,7 +497,8 @@ node *program()  /* <program> ::= <stat> */
   node *x = new_node(PROG);
   next_sym();
   x->o1 = statement();
-  if (sym != EOI) syntax_error();
+  //Expecting end of file - Error Code: 7
+  if (sym != EOI) printf("Bad Termination - Expecting end of file \n"); longjmp(env, 7);
   return x;
 }
 
@@ -585,11 +672,15 @@ void run()
         case GOTO  :
           if((pc > *pc) && (pc > (*pc+127)))
           {
-            //TODO throw error
+            //Mauvaise distance de branchement - Error Code: 8
+            printf("Bad Termination - Mauvaise distance de branchement \n");
+            longjmp(env, 8);
           }
           else if((pc < *pc) && (pc < (*pc-128)))
           {
-            //TODO throw error
+            //Too much distance between jumps - Error Code: 8
+            printf("Bad Termination - Mauvaise distance de branchement \n");
+            longjmp(env, 8);
           }
         pc += *pc;	break;
         case IFEQ  : if (*--sp==0) pc += *pc; else pc++; break;
@@ -605,9 +696,20 @@ void run()
 
 int main()
 {
+  node * asa_nodes;
+	int code = setjump(env);
+
+	if(asa_nodes != NULL)
+	{
+		//clear asa_nodes
+		postorder(asa_nodes);
+		exit(code);
+	}
+
   int i;
 
-  c(program());
+  asa_nodes = program();
+  c(asa_nodes);
 
 #ifdef SHOW_CODE
   printf("\n");
@@ -623,7 +725,7 @@ int main()
     if (globals[i] != 0)
       printf("%c = %d\n", 'a'+i, globals[i]);
 
-
+  postorder(asa_nodes);
   return 0;
 }
 

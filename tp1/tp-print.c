@@ -17,9 +17,13 @@ enum { DO_SYM, ELSE_SYM, IF_SYM, WHILE_SYM, PRINT_SYM, LBRA, RBRA, LPAR,
        RPAR, PLUS, MINUS, LESS, SEMI, EQUAL,
        MULTI, DIVI, MODULO,
        LESS_EQUAL, GREAT, GREAT_EQUAL, DOUBLE_EQUAL, NOT_EQUAL,
+<<<<<<< HEAD
        INT, ID, EOI, TAG_SYM, BREAK_SYM, CONTINUE_SYM, GOTO_SYM };
+=======
+       INT, ID, EOI };
+>>>>>>> parent of fae37db... Merge branch 'master' of https://github.com/OStlaurent/clp
 
-char *words[] = { "do", "else", "if", "while", "print", "break", "continue", "goto", NULL };
+char *words[] = { "do", "else", "if", "while", "print", NULL };
 
 int ch = ' ';
 int sym;
@@ -42,9 +46,12 @@ void next_sym()
       case '*': sym = MULTI; next_ch(); break;
       case '/': sym = DIVI;  next_ch(); break;
       case '%': sym = MODULO;next_ch(); break;
+<<<<<<< HEAD
       case ':': sym = TAG_SYM;next_ch(); break;
+=======
+>>>>>>> parent of fae37db... Merge branch 'master' of https://github.com/OStlaurent/clp
       case EOF: sym = EOI;   next_ch(); break;
-
+      
       case '<':
         next_ch();
         if(ch == '='){
@@ -97,32 +104,32 @@ void next_sym()
         if (ch >= '0' && ch <= '9')
           {
             int_val = 0; /* overflow? */
-
+      
             while (ch >= '0' && ch <= '9')
               {
                 int_val = int_val*10 + (ch - '0');
                 next_ch();
               }
-
+      
             sym = INT;
           }
         else if (ch >= 'a' && ch <= 'z')
           {
             int i = 0; /* overflow? */
-
+      
             while ((ch >= 'a' && ch <= 'z') || ch == '_')
               {
                 id_name[i++] = ch;
                 next_ch();
               }
-
+      
             id_name[i] = '\0';
             sym = 0;
-
-            while (words[sym]!=NULL && strcmp(words[sym], id_name)!=0){
+      
+            while (words[sym]!=NULL && strcmp(words[sym], id_name)!=0){              
               sym++;
             }
-
+      
             if (words[sym] == NULL)
               {
                 if (id_name[1] == '\0') sym = ID; else _error();
@@ -192,7 +199,7 @@ node *term() /* <term> ::= <id> | <int> | <paren_expr> */
   return x;
 }
 
-node *mult() /* <mult> ::= <term>|<mult>"*"<term>|<mult>"/"<term>
+node *mult() /* <mult> ::= <term>|<mult>"*"<term>|<mult>"/"<term> 
                 | <mult>%<term> */
 
 // BOUCLE WHILE!!!
@@ -223,7 +230,7 @@ node *mult() /* <mult> ::= <term>|<mult>"*"<term>|<mult>"/"<term>
     x->o2 = term();
   }
 
-  return x;
+  return x;  
 }
 
 node *sum() /* <sum> ::= <mult>|<sum>"+"<mult>|<sum>"-"<mult> */
@@ -254,7 +261,7 @@ node *test() /* <test> ::= <sum> | <sum> "<" <sum> */
       x->o1 = t;
       x->o2 = sum();
     }
-
+    
     /* <sum> "<=" <sum> */
     else if(sym == LESS_EQUAL){
       node *t = x;
@@ -428,6 +435,7 @@ node *statement()
         }
       next_sym();
     }
+<<<<<<< HEAD
 
     else if (sym == ID)
     {
@@ -476,6 +484,9 @@ node *statement()
     }
 
     else                     /* <expr> ";" */
+=======
+  else                     /* <expr> ";" */
+>>>>>>> parent of fae37db... Merge branch 'master' of https://github.com/OStlaurent/clp
     {
       x = new_node(EXPR);
       x->o1 = expr();
@@ -669,6 +680,7 @@ void run()
         case IDIV  : sp[-2] = sp[-2] / sp[-1]; --sp;     break;
         case IMOD  : sp[-2] = sp[-2] % sp[-1]; --sp;     break;
         case IPRINT: printf("%d\n", *--sp);              break;
+<<<<<<< HEAD
         case GOTO  :
           if((pc > *pc) && (pc > (*pc+127)))
           {
@@ -683,6 +695,9 @@ void run()
             longjmp(env, 8);
           }
         pc += *pc;	break;
+=======
+        case GOTO  : pc += *pc;                          break;
+>>>>>>> parent of fae37db... Merge branch 'master' of https://github.com/OStlaurent/clp
         case IFEQ  : if (*--sp==0) pc += *pc; else pc++; break;
         case IFNE  : if (*--sp!=0) pc += *pc; else pc++; break;
         case IFLT  : if (*--sp< 0) pc += *pc; else pc++; break;
